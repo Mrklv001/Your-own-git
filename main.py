@@ -2,6 +2,7 @@ import sys
 import os
 import hashlib
 import zlib
+import time
 
 
 def init():
@@ -125,6 +126,26 @@ def write_tree():
     print(sha)
 
 
+def commit_tree(tree_sha, parent_sha=None, message=""):
+    author = "John Doe <john@example.com>"
+    timestamp = int(time.time())
+    timezone = "+0000"
+
+    lines = [f"tree {tree_sha}"]
+    if parent_sha:
+        lines.append(f"parent {parent_sha}")
+    lines.append(f"author {author} {timestamp} {timezone}")
+    lines.append(f"committer {author} {timestamp} {timezone}")
+    lines.append("")
+
+    # Добавляем символ новой строки в конец сообщения
+    lines.append(message.strip() + "\n")
+
+    commit_content = "\n".join(lines).encode()
+    sha = hash_object(commit_content, obj_type="commit", write=True)
+    print(sha)
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python script.py <command> [args]")
@@ -155,6 +176,26 @@ def main():
             sys.exit(1)
     elif command == "write-tree":
         write_tree()
+    elif command == "commit-tree":
+        if "-m" not in sys.argv:
+            print(
+                "Usage: commit-tree <tree_sha> [-p <parent_sha>] -m <message>")
+            sys.exit(1)
+
+        tree_sha = sys.argv[2]
+        try:
+            msg_index = sys.argv.index("-m")
+            message = sys.argv[msg_index + 1]
+        except IndexError:
+            print("Error: commit message is required after -m")
+            sys.exit(1)
+
+        parent_sha = None
+        if "-p" in sys.argv:
+            p_index = sys.argv.index("-p")
+            parent_sha = sys.argv[p_index + 1]
+
+        commit_tree(tree_sha, parent_sha, message)
     else:
         print(f"Unknown command: {command}")
         sys.exit(1)
